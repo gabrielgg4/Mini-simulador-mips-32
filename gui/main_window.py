@@ -33,8 +33,8 @@ class MainWindow:
         self.buttons_frame = tk.Frame(main_frame)
         self.buttons_frame.pack(side=tk.TOP, fill=tk.X)
 
-        self.datapath_button = tk.Button(self.buttons_frame, text="Mostrar Datapath", command=self.show_datapath_window)
-        self.datapath_button.pack(side=tk.LEFT)
+        # self.datapath_button = tk.Button(self.buttons_frame, text="Mostrar Datapath", command=self.show_datapath_window)
+        # self.datapath_button.pack(side=tk.LEFT)
 
         self.step_button = tk.Button(self.buttons_frame, text="Executar Passo", command=self.step)
         self.step_button.pack(side=tk.LEFT)
