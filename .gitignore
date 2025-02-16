@@ -3,3 +3,5 @@ src/__pycache__/
 src/datapath/__pycache__/
 
 data/last_program.pkl
+
+.tmp.drivreupload/
