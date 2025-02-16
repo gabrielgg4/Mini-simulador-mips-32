@@ -1,9 +1,8 @@
 class ALU:
     def __init__(self):
         self.result = 0
-        self.zero = 0
-
-    def execute(self, operation, operand1, operand2):
+        # Função faz os calculos que a ALU faria no MIPS 
+    def executar(self, operation, operand1, operand2):
         #ADD  ADDI   SUB  MUL   AND  OR  SLL
         if operation == "ADD":
             self.result = operand1 + operand2
@@ -22,5 +21,4 @@ class ALU:
         else:
             raise ValueError("Operação desconhecida")
         
-        self.zero = 1 if self.result == 0 else 0
         return self.result

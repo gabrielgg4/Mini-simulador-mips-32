@@ -2,6 +2,7 @@ class ControlUnit:
     def __init__(self):
         self.control_signals = {}
 
+    # Simula o controle da ALU, que seria ver o OpCode e definir oq a ALU vai fazer
     def decode(self, opcode):
         print(f"Decodificando opcode: {opcode}")  # Log de depuração
         # Definir sinais de controle com base no opcode

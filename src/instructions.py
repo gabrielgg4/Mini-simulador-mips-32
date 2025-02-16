@@ -1,308 +1,278 @@
 from src.datapath.alu import ALU
 from src.datapath.control_unit import ControlUnit
 from src.datapath.memory import Memory
-from src.datapath.register_file import RegisterFile
-import re
+from src.datapath.registers import Registers
 import tkinter as tk
 
 class Instructions:
     def __init__(self, program_counter):
         self.alu = ALU()
         self.control_unit = ControlUnit()
-        self.memory = Memory(4096)  # Aumentar o tamanho da memória para 4096 palavras
-        self.register_file = RegisterFile()
+        self.memoria = Memory(4096)
+        self.registers = Registers()
         self.labels = {}
-        self.data_section = {}
-        self.program_counter = program_counter  # Adicionar o program_counter
-        self.program = []  # Adicionar o atributo program
+        self.selecao_data = {}
+        self.program_counter = program_counter
+        self.programa = []
 
-    def execute(self, instruction):
-        # Manter os comentários ao executar as instruções
-        instruction_with_comments = instruction.strip()
-        instruction = instruction.split('#')[0].strip()
-        if not instruction:
-            return  # Ignorar linhas vazias ou instruções nulas
-        # Verificar se a instrução contém apenas caracteres válidos (letras, números, espaços, vírgulas, parênteses)
-
-        opcode, *operands = instruction.split()
-        if not opcode:
-            return  # Ignorar instruções vazias
-
-        # Remover vírgulas dos operandos
-        operands = [operand.replace(',', '').strip() for operand in operands]
-
-        # Transformar MOVE para ADD $t1, $t2, $zero
-        if opcode.upper() == "MOVE":
-            reg1, reg2 = operands
-            instruction = f"ADD {reg1}, {reg2}, $zero"
-            opcode, *operands = instruction.split()
-
-        # Descompactar LI para ADDI
-        if opcode.upper() == "LI":
-            reg, imm = self._parse_register(operands[0]), int(operands[1])
-            instruction = f"ADDI {self.register_file.get_register_name(reg)} $zero, {imm}"
-            print(f"Executando instrução: {instruction}")
-            self.execute(instruction)
+    def executar(self, instrucao):
+        instrucao = instrucao.split('#')[0].strip() # Aqui ele remove os espacos em branco strip()
+                                                    # e o que tiver depois do # (split)
+        if not instrucao:
             return
 
-        # Descompactar LA para LUI e ORI
-        if opcode.upper() == "LA":
-            reg, label = self._parse_register(operands[0]), operands[1]
-            address = self.get_label_address(label)
-            upper = (address >> 16) & 0xFFFF
-            lower = address & 0xFFFF
-            self.program.insert(self.program_counter.get() + 1, f"ORI {self.register_file.get_register_name(reg)}, {self.register_file.get_register_name(reg)}, {lower}")
-            instruction = f"LUI {self.register_file.get_register_name(reg)}, {upper}"
-            print(f"Executando instrução: {instruction}")
-            self.execute(instruction)
-            self.program_counter.increment()  # Increment the program counter to account for the inserted instruction
+        # Separa a instrução em partes pelos espaços
+        # então codigin_operacao recebe a primeira parte da instrução
+        # e operandos recebe um array com o resto 
+        codigo_operacao, *operandos = instrucao.split()
+        if not codigo_operacao:
             return
 
-        control_signals = self.control_unit.decode(opcode.upper())
-        
-        # Limpar operandos
-        operands = [operand.replace(',', '').strip() for operand in operands]
+        #Tira as virgulas dos registradores
+        operandos = [op.replace(',', '').strip() for op in operandos]
 
-        print(f"Executando instrução: {instruction}")  # Print da instrução transformada
+        # Isso aqui é meio meme pq literalmente ele pede pra control_unit
+        # buscar o codigo da operacao, que é o mesmo que ele já tem
+        sinais_controle = self.control_unit.decode(codigo_operacao.upper())
+        operandos = [op.replace(',', '').strip() for op in operandos] # Tira as virgulas dos registradores
+        print(f"Executando instrução: {instrucao}")
 
-        if opcode.upper() == "ADD":
-            reg1, reg2, reg3 = map(self._parse_register, operands)
-            operand1 = self.register_file.read(reg2)
-            operand2 = self.register_file.read(reg3)
-            result = self.alu.execute(control_signals["ALUOp"], operand1, operand2)
-            self.register_file.write(reg1, result)
-        elif opcode.upper() == "SUB":
-            reg1, reg2, reg3 = map(self._parse_register, operands)
-            operand1 = self.register_file.read(reg2)
-            operand2 = self.register_file.read(reg3)
-            result = self.alu.execute(control_signals["ALUOp"], operand1, operand2)
-            self.register_file.write(reg1, result)
-        elif opcode.upper() == "MUL":
-            reg1, reg2, reg3 = map(self._parse_register, operands)
-            operand1 = self.register_file.read(reg2)
-            operand2 = self.register_file.read(reg3)
-            result = self.alu.execute(control_signals["ALUOp"], operand1, operand2)
-            self.register_file.write(reg1, result)
-        elif opcode.upper() == "AND":
-            reg1, reg2, reg3 = map(self._parse_register, operands)
-            operand1 = self.register_file.read(reg2)
-            operand2 = self.register_file.read(reg3)
-            result = self.alu.execute(control_signals["ALUOp"], operand1, operand2)
-            self.register_file.write(reg1, result)
-        elif opcode.upper() == "OR":
-            reg1, reg2, reg3 = map(self._parse_register, operands)
-            operand1 = self.register_file.read(reg2)
-            operand2 = self.register_file.read(reg3)
-            result = self.alu.execute(control_signals["ALUOp"], operand1, operand2)
-            self.register_file.write(reg1, result)
-        elif opcode.upper() in ["ADDI", "ADDIU", "SLL"]:
-            reg1, reg2, imm = self._parse_register(operands[0]), self._parse_register(operands[1]), int(operands[2])
-            operand1 = self.register_file.read(reg2)
-            result = self.alu.execute(control_signals["ALUOp"], operand1, imm)
-            self.register_file.write(reg1, result)
-        elif opcode.upper() == "LW":
-            reg, offset_reg = self._parse_register(operands[0]), operands[1]
-            offset, base_reg = int(offset_reg.split('(')[0]), self._parse_register(offset_reg.split('(')[1][:-1])
-            address = self.register_file.read(base_reg) + offset
-            value = self.memory.load(address)
-            self.register_file.write(reg, value)
-        elif opcode.upper() == "SW":
-            reg, offset_reg = self._parse_register(operands[0]), operands[1]
-            offset, base_reg = int(offset_reg.split('(')[0]), self._parse_register(offset_reg.split('(')[1][:-1])
-            address = self.register_file.read(base_reg) + offset
-            value = self.register_file.read(reg)
-            self.memory.store(address, value)
-        elif opcode.upper() == "LUI":
-            reg, imm = self._parse_register(operands[0]), int(operands[1], 0)  # Aceitar valor hexadecimal
-            self.register_file.write(reg, imm << 16)
-            # self._print_to_console(f"Registrador {reg} atualizado com valor {imm << 16} (esperado: {imm} << 16)")
-        elif opcode.upper() == "ORI":
-            reg1, reg2, imm = self._parse_register(operands[0]), self._parse_register(operands[1]), int(operands[2], 0)  # Aceitar valor hexadecimal
-            operand1 = self.register_file.read(reg2)
-            result = operand1 | imm
-            self.register_file.write(reg1, result)
-        elif opcode.upper() == "SLT":
-            reg1, reg2, reg3 = map(self._parse_register, operands)
-            operand1 = self.register_file.read(reg2)
-            operand2 = self.register_file.read(reg3)
-            result = 1 if operand1 < operand2 else 0
-            self.register_file.write(reg1, result)
-        elif opcode.upper() == "SLTI":
-            reg1, reg2, imm = self._parse_register(operands[0]), self._parse_register(operands[1]), int(operands[2])
-            operand1 = self.register_file.read(reg2)
-            result = 1 if operand1 < imm else 0
-            self.register_file.write(reg1, result)
-        elif opcode.upper() == "J":
-            label = operands[0]
-            self.jump_to_label(label)
-        elif opcode.upper() == "JAL":
-            label = operands[0]
-            self.register_file.write(31, self.program_counter.get() + 1)  # Salvar o endereço de retorno em $ra
-            self.jump_to_label(label)
-        elif opcode.upper() == "JR":
-            reg = self._parse_register(operands[0])
-            address = self.register_file.read(reg)
-            self.program_counter.set(address)
-        elif opcode.upper() == "SYSCALL":
-            self.handle_syscall()
+        if codigo_operacao.upper() == "ADD":
+            #Tranforma os registradores em indices
+            reg1, reg2, reg3 = map(self._tranformar_registrador, operandos)
+            op1 = self.registers.ler(reg2)
+            op2 = self.registers.ler(reg3)
+            # Manda a ALU fazer a opercao
+            resultado = self.alu.executar(sinais_controle["ALUOp"], op1, op2)
+            self.registers.escrever(reg1, resultado)
+
+        elif codigo_operacao.upper() == "SUB":
+            reg1, reg2, reg3 = map(self._tranformar_registrador, operandos)
+            op1 = self.registers.ler(reg2)
+            op2 = self.registers.ler(reg3)
+            resultado = self.alu.executar(sinais_controle["ALUOp"], op1, op2)
+            self.registers.escrever(reg1, resultado)
+
+        elif codigo_operacao.upper() == "MUL":
+            reg1, reg2, reg3 = map(self._tranformar_registrador, operandos)
+            op1 = self.registers.ler(reg2)
+            op2 = self.registers.ler(reg3)
+            resultado = self.alu.executar(sinais_controle["ALUOp"], op1, op2)
+            self.registers.escrever(reg1, resultado)
+
+        elif codigo_operacao.upper() == "AND":
+            reg1, reg2, reg3 = map(self._tranformar_registrador, operandos)
+            op1 = self.registers.ler(reg2)
+            op2 = self.registers.ler(reg3)
+            resultado = self.alu.executar(sinais_controle["ALUOp"], op1, op2)
+            self.registers.escrever(reg1, resultado)
+
+        elif codigo_operacao.upper() == "OR":
+            reg1, reg2, reg3 = map(self._tranformar_registrador, operandos)
+            op1 = self.registers.ler(reg2)
+            op2 = self.registers.ler(reg3)
+            resultado = self.alu.executar(sinais_controle["ALUOp"], op1, op2)
+            self.registers.escrever(reg1, resultado)
+
+        elif codigo_operacao.upper() in ["ADDI", "ADDIU", "SLL"]:
+            reg1, reg2, imm = self._tranformar_registrador(operandos[0]), self._tranformar_registrador(operandos[1]), int(operandos[2])
+            op1 = self.registers.ler(reg2)
+            resultado = self.alu.executar(sinais_controle["ALUOp"], op1, imm)
+            self.registers.escrever(reg1, resultado)
+
+        elif codigo_operacao.upper() == "LW":
+            reg = self._tranformar_registrador(operandos[0])
+            offset, base = self._analisar_offset_e_registrador(operandos[1])
+            endereco = self.registers.ler(base) + offset
+            valor = self.memoria.ler(endereco)
+            self.registers.escrever(reg, valor)
+
+        elif codigo_operacao.upper() == "SW":
+            reg = self._tranformar_registrador(operandos[0])
+            offset, base = self._analisar_offset_e_registrador(operandos[1])
+            endereco = self.registers.ler(base) + offset
+            valor = self.registers.ler(reg)
+            self.memoria.armazenar(endereco, valor)
+
+        elif codigo_operacao.upper() == "LUI":
+            # Esse int(operandos[1], 0) já tranforma se for em hexadecimal ou int normal
+            reg, imm = self._tranformar_registrador(operandos[0]), int(operandos[1], 0)
+            self.registers.escrever(reg, imm << 16)
+
+        elif codigo_operacao.upper() == "ORI":
+            reg1, reg2, imm = self._tranformar_registrador(operandos[0]), self._tranformar_registrador(operandos[1]), int(operandos[2], 0)
+            op1 = self.registers.ler(reg2)
+            # op1: 0101 (binarui0
+            # imm: 0011
+            # 
+            # resultado: 0111
+            resultado = op1 | imm
+            self.registers.escrever(reg1, resultado)
+
+        elif codigo_operacao.upper() == "SLT":
+            reg1, reg2, reg3 = map(self._tranformar_registrador, operandos)
+            op1 = self.registers.ler(reg2)
+            op2 = self.registers.ler(reg3)
+            resultado = 1 if op1 < op2 else 0
+            self.registers.escrever(reg1, resultado)
+
+        elif codigo_operacao.upper() == "SLTI":
+            reg1, reg2, imm = self._tranformar_registrador(operandos[0]), self._tranformar_registrador(operandos[1]), int(operandos[2])
+            op1 = self.registers.ler(reg2)
+            resultado = 1 if op1 < imm else 0
+            self.registers.escrever(reg1, resultado)
+
+        elif codigo_operacao.upper() == "SYSCALL":
+            self.tratar_syscall()
         else:
             raise ValueError("Instrução desconhecida")
 
-    def _parse_register(self, reg):
+    def _tranformar_registrador(self, reg):
         if reg.startswith('$'):
-            return self.register_file.register_names.index(reg)  # Obter o índice do registrador pelo nome
+            return self.registers.register_names.index(reg)
         return int(reg)
 
-    def get_label_address(self, label):
-        if label in self.data_section:
-            return self.data_section[label]
+    def get_endereco(self, label):
+        if label in self.selecao_data:
+             return self.selecao_data[label]
         elif label in self.labels:
             return self.labels[label]
         else:
             raise ValueError(f"Label {label} não encontrado")
 
-    def jump_to_label(self, label):
+    def pular_para_label(self, label):
         if label in self.labels:
-            self.program_counter.set(self.labels[label])
+            self.program_counter.definir(self.labels[label])
         else:
             raise ValueError(f"Label {label} não encontrado")
 
-    def handle_syscall(self):
-        v0 = self.register_file.read(2)  # $v0 é o registrador 2
-        if v0 == 1:  # Imprimir inteiro
-            a0 = self.register_file.read(4)  # $a0 é o registrador 4
-            self._print_to_console(f"{a0}\n")
-        elif v0 == 4:  # Imprimir string
-            a0 = self.register_file.read(4)  # $a0 é o registrador 4
-            address = a0
-            string = ""
-            while self.memory.load(address) != 0:
-                char = chr(self.memory.load(address))
-                if char == '\\':  # Verificar se o caractere é uma barra invertida
-                    next_char = chr(self.memory.load(address + 1))
-                    if next_char == 'n':
-                        string += '\n'
-                        address += 2  # Pular a barra invertida e o 'n'
-                    elif next_char == 't':
-                        string += '\t'
-                        address += 2  # Pular a barra invertida e o 't'
+    def tratar_syscall(self):
+        print("Executando syscall")
+        v0 = self.registers.ler(2)
+        if v0 == 1:
+            a0 = self.registers.ler(4)
+            self._imprimir_no_console(f"{a0}\n")
+        elif v0 == 4:
+            a0 = self.registers.ler(4)
+            endereco = a0
+            texto = ""
+            while self.memoria.ler(endereco) != 0:
+                char = chr(self.memoria.ler(endereco))
+                if char == '\\':
+                    prox = chr(self.memoria.ler(endereco + 1))
+                    if prox == 'n':
+                        texto += '\n'
+                        endereco += 2
+                    elif prox == 't':
+                        texto += '\t'
+                        endereco += 2
                     else:
-                        string += char  # Adicionar a barra invertida como está
-                        address += 1
+                        texto += char
+                        endereco += 1
                 else:
-                    string += char
-                    address += 1
-            self._print_to_console(string)
-        elif v0 == 5:  # Ler inteiro
-            input_value = int(input("Digite um inteiro: "))
-            self.register_file.write(2, input_value)  # Escrever o valor lido em $v0
-        elif v0 == 10:  # Sair
-            self._print_to_console("Saindo do programa.\n")
-            # exit()
+                    texto += char
+                    endereco += 1
+            self._imprimir_no_console(texto)
+        elif v0 == 5:
+            entrada = int(input("Digite um inteiro: "))
+            self.registers.escrever(2, entrada)
+        elif v0 == 10:
+            self._imprimir_no_console("------ Saindo do programa. ------\n")
         else:
             raise ValueError(f"Syscall {v0} desconhecido\n")
 
-    def _print_to_console(self, message):
-        # Função para imprimir no console da interface gráfica
-        if hasattr(self, 'output_text'):
-            self.output_text.insert(tk.END, f"{message}")
-            self.output_text.see(tk.END)
+    def _imprimir_no_console(self, mensagem):
+        if hasattr(self, 'texto_output'):
+            self.texto_output.insert(tk.END, f"{mensagem}")
+            self.texto_output.see(tk.END)
 
-    def translate_to_binary(self, instruction):
-        # Implementar a lógica de tradução de instruções para binário
-        opcode, *operands = instruction.split()
-        opcode = opcode.upper()
-        binary_instruction = ""
-
-        # Remover vírgulas dos operandos
-        operands = [operand.replace(',', '') for operand in operands]
-
-        if opcode == "ADD":
-            binary_instruction = "000000" + self._register_to_binary(operands[1]) + self._register_to_binary(operands[2]) + self._register_to_binary(operands[0]) + "00000" + "100000"
-        elif opcode == "SUB":
-            binary_instruction = "000000" + self._register_to_binary(operands[1]) + self._register_to_binary(operands[2]) + self._register_to_binary(operands[0]) + "00000" + "100010"
-        elif opcode == "MUL":
-            binary_instruction = "011100" + self._register_to_binary(operands[1]) + self._register_to_binary(operands[2]) + self._register_to_binary(operands[0]) + "00000" + "000010"
-        elif opcode == "AND":
-            binary_instruction = "000000" + self._register_to_binary(operands[1]) + self._register_to_binary(operands[2]) + self._register_to_binary(operands[0]) + "00000" + "100100"
-        elif opcode == "OR":
-            binary_instruction = "000000" + self._register_to_binary(operands[1]) + self._register_to_binary(operands[2]) + self._register_to_binary(operands[0]) + "00000" + "100101"
-        elif opcode == "ADDI":
-            binary_instruction = "001000" + self._register_to_binary(operands[1]) + self._register_to_binary(operands[0]) + self._immediate_to_binary(operands[2])
-        elif opcode == "ADDIU":
-            binary_instruction = "001000" + self._register_to_binary(operands[1]) + self._register_to_binary(operands[0]) + self._immediate_to_binary(operands[2])
-        elif opcode == "SLL":
-            binary_instruction = "000000" + "00000" + self._register_to_binary(operands[1]) + self._register_to_binary(operands[0]) + self._immediate_to_binary(operands[2]) + "000000"
-        elif opcode == "LW":
-            offset, base_reg = operands[1].split('(')
-            base_reg = base_reg[:-1]
-            binary_instruction = "100011" + self._register_to_binary(base_reg) + self._register_to_binary(operands[0]) + self._immediate_to_binary(offset)
-        elif opcode == "SW":
-            offset, base_reg = operands[1].split('(')
-            base_reg = base_reg[:-1]
-            binary_instruction = "101011" + self._register_to_binary(base_reg) + self._register_to_binary(operands[0]) + self._immediate_to_binary(offset)
-        elif opcode == "LUI":
-            binary_instruction = "001111" + "00000" + self._register_to_binary(operands[0]) + self._immediate_to_binary(operands[1])
-        elif opcode == "ORI":
-            binary_instruction = "001101" + self._register_to_binary(operands[1]) + self._register_to_binary(operands[0]) + self._immediate_to_binary(operands[2])
-        elif opcode == "SLT":
-            binary_instruction = "000000" + self._register_to_binary(operands[1]) + self._register_to_binary(operands[2]) + self._register_to_binary(operands[0]) + "00000" + "101010"
-        elif opcode == "SLTI":
-            binary_instruction = "001010" + self._register_to_binary(operands[1]) + self._register_to_binary(operands[0]) + self._immediate_to_binary(operands[2])
-        elif opcode == "LI":
-            binary_instruction = "001000" + self._register_to_binary(operands[0]) + self._register_to_binary(operands[0]) + self._immediate_to_binary(operands[1])
-        elif opcode == "LA":
-            binary_instruction = "001000" + "00000" + self._register_to_binary(operands[0]) + self._immediate_to_binary(self.get_label_address(operands[1]))
-        elif opcode == "J":
-            binary_instruction = "000010" + self._address_to_binary(self.get_label_address(operands[0]))
-        elif opcode == "JAL":
-            binary_instruction = "000011" + self._address_to_binary(self.get_label_address(operands[0]))
-        elif opcode == "JR":
-            binary_instruction = "000000" + self._register_to_binary(operands[0]) + "000000000000000" + "001000"
-        elif opcode == "SYSCALL":
-            binary_instruction = "00000000000000000000000000001100"
+    def traduzir_para_binario(self, instrucao):
+        codigo_operacao, *operandos = instrucao.split()
+        codigo_operacao = codigo_operacao.upper()
+        binario = ""
+        operandos = [op.replace(',', '') for op in operandos]
+        if codigo_operacao == "ADD":
+            binario = "000000" + self._registrador_para_binario(operandos[1]) + self._registrador_para_binario(operandos[2]) + self._registrador_para_binario(operandos[0]) + "00000" + "100000"
+        elif codigo_operacao == "SUB":
+            binario = "000000" + self._registrador_para_binario(operandos[1]) + self._registrador_para_binario(operandos[2]) + self._registrador_para_binario(operandos[0]) + "00000" + "100010"
+        elif codigo_operacao == "MUL":
+            binario = "011100" + self._registrador_para_binario(operandos[1]) + self._registrador_para_binario(operandos[2]) + self._registrador_para_binario(operandos[0]) + "00000" + "000010"
+        elif codigo_operacao == "AND":
+            binario = "000000" + self._registrador_para_binario(operandos[1]) + self._registrador_para_binario(operandos[2]) + self._registrador_para_binario(operandos[0]) + "00000" + "100100"
+        elif codigo_operacao == "OR":
+            binario = "000000" + self._registrador_para_binario(operandos[1]) + self._registrador_para_binario(operandos[2]) + self._registrador_para_binario(operandos[0]) + "00000" + "100101"
+        elif codigo_operacao == "SLL":
+            binario = "000000" + "00000" + self._registrador_para_binario(operandos[1]) + self._registrador_para_binario(operandos[0]) + self._imediato_para_binario(operandos[2]) + "000000"
+        elif codigo_operacao == "SLT":
+            binario = "000000" + self._registrador_para_binario(operandos[1]) + self._registrador_para_binario(operandos[2]) + self._registrador_para_binario(operandos[0]) + "00000" + "101010"
+        elif codigo_operacao == "SYSCALL":
+            binario = "00000000000000000000000000001100"
+        elif codigo_operacao == "LW":
+            offset, base = operandos[1].split('(')
+            base = base[:-1]
+            binario = "100011" + self._registrador_para_binario(base) + self._registrador_para_binario(operandos[0]) + self._imediato_para_binario(offset)
+        elif codigo_operacao == "SW":
+            offset, base = operandos[1].split('(')
+            base = base[:-1]
+            binario = "101011" + self._registrador_para_binario(base) + self._registrador_para_binario(operandos[0]) + self._imediato_para_binario(offset)
+        elif codigo_operacao == "ADDI":
+            binario = "001000" + self._registrador_para_binario(operandos[1]) + self._registrador_para_binario(operandos[0]) + self._imediato_para_binario(operandos[2])
+        elif codigo_operacao == "ADDIU":
+            binario = "001001" + self._registrador_para_binario(operandos[1]) + self._registrador_para_binario(operandos[0]) + self._imediato_para_binario(operandos[2])
+        elif codigo_operacao == "LUI":
+            binario = "001111" + "00000" + self._registrador_para_binario(operandos[0]) + self._imediato_para_binario(operandos[1])
+        elif codigo_operacao == "ORI":
+            binario = "001101" + self._registrador_para_binario(operandos[1]) + self._registrador_para_binario(operandos[0]) + self._imediato_para_binario(operandos[2])
+        elif codigo_operacao == "SLTI":
+            binario = "001010" + self._registrador_para_binario(operandos[1]) + self._registrador_para_binario(operandos[0]) + self._imediato_para_binario(operandos[2])
+        elif codigo_operacao == "LI":
+            binario = "001000" + self._registrador_para_binario(operandos[0]) + self._registrador_para_binario(operandos[0]) + self._imediato_para_binario(operandos[1])
+        elif codigo_operacao == "LA":
+            binario = "001000" + "00000" + self._registrador_para_binario(operandos[0]) + self._imediato_para_binario(self.get_endereco(operandos[1]))
         else:
-            raise ValueError("Instrução desconhecida")
+            raise ValueError("Instrução não disponivel: " + codigo_operacao)
 
-        if len(binary_instruction) > 32:
-            binary_instruction = binary_instruction[-32:]  # Remover zeros à esquerda se for maior que 32 bits
+        if len(binario) > 32:
+            binario = binario[-32:]
         else:
-            binary_instruction = binary_instruction.zfill(32)  # Adicionar zeros à esquerda se for menor que 32 bits
-        # Formatar o código binário para adicionar espaços a cada quatro dígitos
-        formatted_binary_instruction = ' '.join([binary_instruction[i:i+4] for i in range(0, len(binary_instruction), 4)])
-        return formatted_binary_instruction
+            binario = binario.zfill(32)
+        formato = ' '.join([binario[i:i+4] for i in range(0, len(binario), 4)])
+        return formato
 
-    def _register_to_binary(self, reg):
-        reg_num = self._parse_register(reg)
-        return format(reg_num, '05b')
+    def _registrador_para_binario(self, reg):
+        num = self._tranformar_registrador(reg)
+        return format(num, '05b')
 
-    def _immediate_to_binary(self, imm):
+    def _imediato_para_binario(self, imm):
         return format(int(imm), '016b')
 
-    def _address_to_binary(self, address):
-        return format(address, '026b').lstrip('0')
+    def _endereco_para_binario(self, endereco):
+        return format(endereco, '026b').lstrip('0')
 
-    def transform_instruction(self, instruction, extra_string):
-        opcode, *operands = instruction.split()
-        if opcode.upper() == "MOVE":
-            reg1, reg2 = operands
-            return f"add {reg1} {reg2} $zero", extra_string
-        elif opcode.upper() == "LI":
-            reg, imm = operands
-            return f"addi {reg} {reg} {imm}", extra_string
-        elif opcode.upper() == "LA":
-            reg, label = operands
-            address = self.get_label_address(label)
-            upper = (address >> 16) & 0xFFFF
-            lower = address & 0xFFFF
-            extra_string += "\n"
+    def transformar_instrucao(self, instrucao, extra):
+        codigo_operacao, *operandos = instrucao.split()
+        if codigo_operacao.upper() == "MOVE":
+            reg1, reg2 = operandos
+            return f"add {reg1} {reg2} $zero", extra
+        elif codigo_operacao.upper() == "LI":
+            reg, imm = operandos
+            return f"addi {reg} {reg} {imm}", extra
+        elif codigo_operacao.upper() == "LA":
+            reg, label = operandos
+            endereco = self.get_endereco(label)
+            upper = (endereco >> 16) & 0xFFFF
+            lower = endereco & 0xFFFF
+            extra += "\n"
             if lower != 0:
-                return f"LUI {reg}, {upper}\nORI {reg}, {reg}, {lower}", extra_string
+                return f"LUI {reg}, {upper}\nORI {reg}, {reg}, {lower}", extra
             else:
-                return f"LUI {reg}, {upper}", extra_string
-        return instruction, extra_string
-
-    def get_instruction_with_comments(self, pc):
-        if pc < len(self.program):
-            return self.program[pc]
-        return ""
+                return f"LUI {reg}, {upper}", extra
+        return instrucao, extra
+    
+    def _analisar_offset_e_registrador(self, offset_com_registrador):
+        # Espera uma string no formato numero(registrador)
+        string_offset, resto = offset_com_registrador.split('(')
+        offset = int(string_offset)
+        string_registrador = resto.rstrip(')')  
+        indice_registrador = self._tranformar_registrador(string_registrador)
+        return offset, indice_registrador

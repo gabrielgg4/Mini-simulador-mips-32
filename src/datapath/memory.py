@@ -1,9 +1,10 @@
 class Memory:
-    def __init__(self, size):
-        self.memory = [0] * size  # Inicializar a memória com o tamanho especificado
+    # Simula a memoria do MIPS, armazenando as coisas em um array
+    def __init__(self, tamanho):
+        self.memoria = [0] * tamanho
 
-    def load(self, address):
-        return self.memory[address]
+    def ler(self, endereco):
+        return self.memoria[endereco]
 
-    def store(self, address, value):
-        self.memory[address] = value
+    def armazenar(self, endereco, valor):
+        self.memoria[endereco] = valor

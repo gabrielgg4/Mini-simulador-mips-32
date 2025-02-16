@@ -1,15 +1,16 @@
 from src.datapath.adder import Adder
 
 class ProgramCounter:
+    # Faz a função de PC, que no caso é simples pq não tem nenhuma função do tipo J implemetada
     def __init__(self):
-        self.pc = 0  # Inicializa o PC com 0
-        self.adder = Adder()  # Adiciona uma instância do Adder
+        self.pc = 0  
+        self.adder = Adder()  
 
-    def increment(self):
-        self.pc = self.adder.increment(self.pc, 1)  # Usa o Adder para incrementar o PC
+    def incrementar(self):
+        self.pc = self.adder.incrementar(self.pc, 1)
 
-    def set(self, value):
-        self.pc = value  # Define o PC para um valor específico
+    def set(self, valor):
+        self.pc = valor
 
     def get(self):
-        return self.pc  # Retorna o valor atual do PC
+        return self.pc

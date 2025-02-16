@@ -1,3 +1,4 @@
 class Adder:
-    def increment(self, value, increment):
+    # Função é apenas pra somar
+    def incrementar(self, value, increment):
         return value + increment
