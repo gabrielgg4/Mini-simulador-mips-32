@@ -48,7 +48,7 @@ class JanelaPrincipal:
         self.load_last_button = tk.Button(self.frame_botoes, text="Carregar Último Programa", command=self.carregar_ultimo_programa)
         self.load_last_button.pack(side=tk.LEFT)
 
-        # Adicionar opção para alternar entre binário e hexadecimal
+        # Opção para alternar entre binário e hexadecimal
         self.modo_dos_codigos = tk.Frame(self.frame_botoes)
         self.modo_dos_codigos.pack(side=tk.LEFT)
 
@@ -58,7 +58,7 @@ class JanelaPrincipal:
         self.hex_radio = tk.Radiobutton(self.modo_dos_codigos, text="Hexadecimal", variable=self.modo_codigos, value="hex", command=self.atualizar_codigos_display)
         self.hex_radio.pack(side=tk.LEFT)
 
-        # Adicionar opção para alternar entre nome e número dos registradores
+        # opção para alternar entre nome e número dos registradores
         self.register_display_mode_frame = tk.Frame(self.frame_botoes)
         self.register_display_mode_frame.pack(side=tk.LEFT)
 
@@ -76,40 +76,39 @@ class JanelaPrincipal:
         self.frame_registradores = tk.Frame(self.middle_frame)
         self.frame_registradores.pack(side=tk.LEFT, fill=tk.Y)
 
-        self.registers_text_col1 = tk.Text(self.frame_registradores, height=20, width=12)
-        self.registers_text_col1.grid(row=0, column=0)
-        self.registers_text_col1.tag_configure("modified", background="red")  # Definir a tag
+        self.registers_texto_col1 = tk.Text(self.frame_registradores, height=20, width=12)
+        self.registers_texto_col1.grid(row=0, column=0)
+        self.registers_texto_col1.tag_configure("modificado", background="red")  # Definir a tag
 
-        self.registers_text_col2 = tk.Text(self.frame_registradores, height=20, width=12)
-        self.registers_text_col2.grid(row=0, column=1)
-        self.registers_text_col2.tag_configure("modified", background="red")  # Definir a tag
+        self.registers_texto_col2 = tk.Text(self.frame_registradores, height=20, width=12)
+        self.registers_texto_col2.grid(row=0, column=1)
+        self.registers_texto_col2.tag_configure("modificado", background="red")  
 
         # Frame para a linha de código sendo executada
         self.code_frame = tk.Frame(self.middle_frame)
         self.code_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
-        # Adicionar um Text widget para o código binário
+        # Adiciona um Text widget para o código binário
         self.texto_binario = tk.Text(self.code_frame, height=20, width=45)
         self.texto_binario.pack(side=tk.LEFT, fill=tk.BOTH, expand=False)
 
-        # Adicionar um Text widget para o código executado
+        # Adiciona um Text widget para o codigo executado
         self.texto_executado = tk.Text(self.code_frame, height=20, width=25)
         self.texto_executado.pack(side=tk.LEFT, fill=tk.BOTH, expand=False)
 
-        # Adicionar um Text widget para o código do programa
+        # Adiciona um Text widget para o codigo
         self.texto_do_programa = tk.Text(self.code_frame, height=20, width=40)
         self.texto_do_programa.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        # Adicionar uma scrollbar compartilhada
+        #  scrollbar compartilhada
         self.scrollbar = tk.Scrollbar(self.code_frame, orient="vertical", command=self.sincronizar_scroll)
         self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        # Configurar os widgets Text para usar a scrollbar
+        #   scrollbar
         self.texto_binario.config(yscrollcommand=self.scrollbar.set)
         self.texto_executado.config(yscrollcommand=self.scrollbar.set)
         self.texto_do_programa.config(yscrollcommand=self.scrollbar.set)
 
-        # Bind mouse scroll events to sincronizar_scroll
         self.texto_binario.bind("<MouseWheel>", self.on_mouse_wheel)
         self.texto_executado.bind("<MouseWheel>", self.on_mouse_wheel)
         self.texto_do_programa.bind("<MouseWheel>", self.on_mouse_wheel)
@@ -117,7 +116,7 @@ class JanelaPrincipal:
         # Frame para o console
         self.console_frame = tk.Frame(main_frame)
         self.console_frame.pack(side=tk.BOTTOM, fill=tk.X)
-        # Adicionar uma scrollbar para o console
+        # Adiciona scrollbar 
 
         self.console_scrollbar = tk.Scrollbar(self.console_frame)
         self.console_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
@@ -125,15 +124,15 @@ class JanelaPrincipal:
         self.texto_output = tk.Text(self.console_frame, height=15)
         self.texto_output.pack(fill=tk.BOTH, expand=True)
 
-        # Configurar o widget Text para usar a scrollbar
+        # Configura a scrollbar
         self.texto_output.config(yscrollcommand=self.console_scrollbar.set)
         self.console_scrollbar.config(command=self.texto_output.yview)
 
-        # Passar a referência do texto_output para a instância de Instructions
+        # Passar o texto_output para a Instructions
         self.simulator.instructions.console_output = self.texto_output
         self.simulator.instructions.texto_output = self.texto_output
 
-        self.atualizar_registradores()  # Inicializar a exibição dos registradores
+        self.atualizar_registradores()  
 
     def formatar_mensagens(self, message):
         return f"########## {message} ##########\n"
@@ -202,7 +201,6 @@ class JanelaPrincipal:
     def _carregar_arquivo(self, file_path):
         with open(file_path, 'r', encoding='utf-8') as file:
             programa = file.readlines()
-        # Replace call to carregar_programa with carregar_programa
         self.simulator.carregar_programa(programa)
         self.texto_output.delete(1.0, tk.END)  # Limpar o console
         self.texto_binario.delete(1.0, tk.END)  # Limpar o console de código binário
@@ -237,10 +235,9 @@ class JanelaPrincipal:
         if self.simulator.program_counter.get() >= len(self.simulator.programa):
             return
         try:
-            self.simulator.passo(self.atualizar_registradores)  # Passar a função de atualização dos registradores
-            # self.atualizar_registradores()  # Atualizar a exibição dos registradores
-            self.atualizar_codigos_display()  # Atualizar a exibição da linha de código sendo executada
-            self.root.update_idletasks()  # Forçar a atualização da interface gráfica
+            self.simulator.passo(self.atualizar_registradores)  
+            self.atualizar_codigos_display()  
+            self.root.update_idletasks()  
             
         except RuntimeError as e:
             self.texto_output.insert(tk.END, self.formatar_mensagens(f"Erro: {e}"))
@@ -250,17 +247,16 @@ class JanelaPrincipal:
             return
         try:
             while self.simulator.program_counter.get() < len(self.simulator.programa):
-                self.simulator.passo(self.atualizar_registradores)  # Passar a função de atualização dos registradores
-                # self.atualizar_registradores()  # Atualizar a exibição dos registradores
-                self.atualizar_codigos_display()  # Atualizar a exibição da linha de código sendo executada
+                self.simulator.passo(self.atualizar_registradores)  
+                self.atualizar_codigos_display()  
                 self.root.update_idletasks()  # Forçar a atualização da interface gráfica
             self.texto_output.insert(tk.END, self.formatar_mensagens("Programa executado."))
         except RuntimeError as e:
             self.texto_output.insert(tk.END, self.formatar_mensagens(f"Erro: {e}"))
 
     def limpar_tabela_registradores(self):
-        self.registers_text_col1.delete(1.0, tk.END)
-        self.registers_text_col2.delete(1.0, tk.END)
+        self.registers_texto_col1.delete(1.0, tk.END)
+        self.registers_texto_col2.delete(1.0, tk.END)
         self.simulator.instructions.registers.registers = registers = [0] * 32
         registers = self.simulator.instructions.registers.registers
         register_names = self.simulator.instructions.registers.register_names
@@ -270,18 +266,18 @@ class JanelaPrincipal:
             else:
                 text = f"${i}: {registers[i]}\n"
             
-            self.registers_text_col1.insert(tk.END, text)
+            self.registers_texto_col1.insert(tk.END, text)
         for i in range(16, 32):
             if self.modo_registradores.get() == "name":
                 text = f"{register_names[i]}: {registers[i]}\n"
             else:
                 text = f"${i}: {registers[i]}\n"
             
-            self.registers_text_col2.insert(tk.END, text)
+            self.registers_texto_col2.insert(tk.END, text)
         
     def atualizar_registradores(self):
-        self.registers_text_col1.delete(1.0, tk.END)
-        self.registers_text_col2.delete(1.0, tk.END)
+        self.registers_texto_col1.delete(1.0, tk.END)
+        self.registers_texto_col2.delete(1.0, tk.END)
         registers = self.simulator.instructions.registers.registers
         register_names = self.simulator.instructions.registers.register_names
 
@@ -291,13 +287,13 @@ class JanelaPrincipal:
             else:
                 text = f"${i}: {registers[i]}\n"
             
-            self.registers_text_col1.insert(tk.END, text)
+            self.registers_texto_col1.insert(tk.END, text)
             
             # Verificar se o registrador foi modificado e aplicar a tag
             if registers[i] != self.registradores_antigos[i]:
-                line_start = f"{i + 1}.0"
-                line_end = f"{i + 1}.end"
-                self.registers_text_col1.tag_add("modified", line_start, line_end)
+                comeco_lina = f"{i + 1}.0"
+                fim_linha = f"{i + 1}.end"
+                self.registers_texto_col1.tag_add("modificado", comeco_lina, fim_linha)
 
         for i in range(16, 32):
             if self.modo_registradores.get() == "name":
@@ -305,28 +301,26 @@ class JanelaPrincipal:
             else:
                 text = f"${i}: {registers[i]}\n"
             
-            self.registers_text_col2.insert(tk.END, text)
+            self.registers_texto_col2.insert(tk.END, text)
             
-            # Verificar se o registrador foi modificado e aplicar a tag
             if registers[i] != self.registradores_antigos[i]:
-                line_start = f"{i - 15}.0"
-                line_end = f"{i - 15}.end"
-                self.registers_text_col2.tag_add("modified", line_start, line_end)
+                comeco_lina = f"{i - 15}.0"
+                fim_linha = f"{i - 15}.end"
+                self.registers_texto_col2.tag_add("modificado", comeco_lina, fim_linha)
 
-        # Atualizar self.registradores_antigos após todas as comparações
         self.registradores_antigos = registers.copy()
         
         pc = self.program_counter.get() * 4
-        self.registers_text_col1.insert(tk.END, f"PC: {pc}\n")
+        self.registers_texto_col1.insert(tk.END, f"PC: {pc}\n")
         
     def atualizar_codigos_arrays(self):
         self.codigos_binarios = []
         self.codigos_hexa = []
         for instrucao in self.simulator.programa:
-            binary_instruction = self.simulator.instructions.traduzir_para_binario(instrucao)
-            hex_instruction = "0x" + hex(int(binary_instruction.replace(" ", ""), 2))[2:].zfill(8).upper()
-            self.codigos_binarios.append(binary_instruction)
-            self.codigos_hexa.append(hex_instruction)
+            instrucao_binaria = self.simulator.instructions.traduzir_para_binario(instrucao)
+            instrucao_hex = "0x" + hex(int(instrucao_binaria.replace(" ", ""), 2))[2:].zfill(8).upper()
+            self.codigos_binarios.append(instrucao_binaria)
+            self.codigos_hexa.append(instrucao_hex)
 
     def atualizar_codigos_display(self):
         self.texto_binario.delete(1.0, tk.END)
@@ -345,7 +339,6 @@ class JanelaPrincipal:
             # Aplicar replace separadamente
             transformed_instruction = transformed_instruction.replace('      ', ' ').replace('    ', ' ')
             
-            # Exibir a instrução com comentários, seu código binário e a instrução transformada
             if pc < len(self.codigos_binarios) and pc < len(self.codigos_hexa):
                 if self.modo_codigos.get() == "binary":
                     self.texto_binario.insert(tk.END, f"{self.codigos_binarios[pc]}\n")
@@ -353,8 +346,8 @@ class JanelaPrincipal:
                     self.texto_binario.insert(tk.END, f"{self.codigos_hexa[pc]}\n")
                 self.texto_executado.insert(tk.END, f"{transformed_instruction}\n")
                 self.texto_do_programa.insert(tk.END, f"{instrucao_com_comentarios}\n")
-        self.texto_binario.see(tk.END)  # Rolagem automática para a última linha
-        self.texto_executado.see(tk.END)  # Rolagem automática para a última linha
+        self.texto_binario.see(tk.END)  
+        self.texto_executado.see(tk.END)  
         self.texto_do_programa.see(tk.END)  # Rolagem automática para a última linha
 
         # Destacar a linha de código sendo executada

@@ -124,7 +124,7 @@ class Simulator:
         self.instructions.programa = self.programa  
         self.program_counter.set(0) 
 
-    def passo(self, atualizar_registradores_callback=None):
+    def passo(self, atualizar_registradores=None):
         if not self.programa:
             raise RuntimeError("Nenhum programa carregado.")
         pc = self.program_counter.get()
@@ -132,9 +132,9 @@ class Simulator:
             instrucao = self.programa[pc]
             print(f"Executando instrução: {instrucao}")
             self.instructions.executar(instrucao)
-            self.program_counter.incrementar()  # Incrementa o PC após a execução da instrução
-            if atualizar_registradores_callback:
-                atualizar_registradores_callback()  # Chamar a função de atualização dos registradores
+            self.program_counter.incrementar()  
+            if atualizar_registradores:
+                atualizar_registradores()  
         else:
             print("Fim do programa.")
 

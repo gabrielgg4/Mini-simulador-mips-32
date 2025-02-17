@@ -32,7 +32,6 @@ class Watcher:
         self.process = subprocess.Popen([sys.executable, self.script])
 
     def clear_terminal(self):
-        # Limpa o terminal no Windows
         os.system('cls' if os.name == 'nt' else 'clear')
 
 class Handler(FileSystemEventHandler):
